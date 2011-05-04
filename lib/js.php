@@ -25,7 +25,7 @@ function k_js_package($src, $dest, array $includes = array (), array $options = 
         $temp_path = $combined_path . '.TEMP';
         $package_args = array_merge($args, array ($package, '>', $temp_path));
         k_shell_cmd('sprocketize ' . implode(' ', $package_args));
-        if (md5_file($temp_path) != md5_file($combined_path)) {
+        if (!file_exists($combined_path) || md5_file($temp_path) != md5_file($combined_path)) {
             rename($temp_path, $combined_path);
             k_log("Package {$package_name} updated");
         } else {

@@ -1,4 +1,7 @@
 <?php
+/**
+ * Run Konstrukt.
+ */
 function konstrukt() {
     _k_init();
     
@@ -10,6 +13,21 @@ function konstrukt() {
         'base_dir' => isset ($args[0]) ? array_shift($args) : '.',
         'watch' => false,
     );
+    
+    // usage help
+    if (isset ($options['h']) || isset ($options['help'])) {
+        _k_usage();
+        return;
+    }
+    
+    // set log level
+    if (isset ($options['v'])) {
+        _k_log_level(-1);
+    } else if (isset ($options['q'])) {
+        _k_log_level(1);
+    } else if (isset ($options['qq'])) {
+        _k_log_level(2);
+    }
     
     // store the base dir
     _k_base_dir($options['base_dir']);
@@ -38,7 +56,9 @@ function k_register_resource($r) {
  * @param string $msg
  */
 function k_log($msg) {
-    fwrite(STDOUT, _k_log_format('INFO', $msg));
+    if (_k_log_level() <= 0) {
+        fwrite(STDOUT, _k_log_format('INFO', $msg));
+    }
 }
 
 /**
@@ -46,24 +66,30 @@ function k_log($msg) {
  * @param string $err
  */
 function k_error($err) {
-    fwrite(STDERR, _k_log_format('ERROR', $err, 'red'));
+    if (_k_log_level() <= 1) {
+        fwrite(STDERR, _k_log_format('ERROR', $err, 'red'));
+    }
 }
 
 /**
  * Indent the log output.
  */
 function k_log_indent($msg = null) {
-    if ($msg) {
-        fwrite(STDOUT, _k_log_format('', $msg, 'dark_gray'));
+    if (_k_log_level() <= -1) {
+        if ($msg) {
+            fwrite(STDOUT, _k_log_format('', $msg, 'dark_gray'));
+        }
+        _k_log_prefix("> ");
     }
-    _k_log_prefix("> ");
 }
 
 /**
  * Unindent the log output.
  */
 function k_log_unindent() {
-    _k_log_prefix('', "> ");
+    if (_k_log_level() <= -1) {
+        _k_log_prefix('', "> ");
+    }
 }
 
 /**
@@ -172,8 +198,8 @@ function _k_build_one($r, $f, $options) {
 }
 
 function _k_init() {
-    k_register_resource('js');
-    k_register_resource('css');
+    _k_resources('js', false);
+    _k_resources('css', false);
     _k_extension_load('coffee');
     _k_extension_load('js');
     _k_extension_load('scss');
@@ -204,13 +230,14 @@ function _k_read_options(array &$args) {
     return $options;
 }
 
-function _k_resources($r = null) {
+function _k_resources($r = null, $throw = true) {
     static $resources = array ();
     if ($r && !in_array($r, $resources)) {
-        if (!is_callable("konstrukt_{$r}")) {
+        if (is_callable("konstrukt_{$r}")) {
+            $resources[] = $r;
+        } else if ($throw) {
             throw new LogicException("Invalid resource: {$r}. Build function not found.");
         }
-        $resources[] = $r;
     }
     return $resources;
 }
@@ -265,15 +292,6 @@ function _k_extension_load($extension) {
     require_once ("{$dir}/{$extension}.php");    
 }
 
-function _k_escapeshellarg($arg) {
-    if (strpos($arg, '=')) {
-        list ($start, $end) = explode('=', $arg);
-        var_dump($start);
-        var_dump($end);
-    }
-    return escapeshellarg($arg);
-}
-
 function _k_log_color($str, $color) {
     static $colors = array (
         'red' => '0;31',
@@ -308,4 +326,16 @@ function _k_log_prefix($push = '', $pop = '') {
         $prefix .= $push;
     }
     return $prefix;
+}
+
+function _k_log_level($set = null) {
+    static $level = 0;
+    if ($set !== null) {
+        $level = (int)$set;
+    }
+    return $level;
+}
+
+function _k_usage() {
+    fputs(STDOUT, file_get_contents(dirname(__FILE__) . '/usage.txt'));
 }
