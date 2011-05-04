@@ -133,7 +133,11 @@ function k_shell_cmd($cmd, $pointer = false) {
         2 => array ('pipe', 'w'),
     );
     $pp = proc_open($cmd, $descriptorspec, $pipes);
-    while ($err = fgets($pipes[2], 2048)) {
+    $err = '';
+    while ($err_line = fgets($pipes[2], 2048)) {
+        $err .= $err_line;
+    }
+    if ($err) {
         k_error(rtrim($err, "\n"));
     }
     if ($pointer) {
