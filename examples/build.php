@@ -17,4 +17,8 @@ function konstrukt_css() {
     k_scss_compile('scss', 'public/css');
 }
 
+function konstrukt_metadata() {
+    k_metadata_write('resources/metadata.json');
+}
+
 konstrukt();

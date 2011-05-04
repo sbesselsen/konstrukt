@@ -146,6 +146,46 @@ function k_shell_cmd($cmd, $pointer = false) {
     proc_close($pp);
 }
 
+/**
+ * Add metadata about a resource.
+ * @param string $type  Resource type.
+ * @param string $id    Resource ID.
+ * @param array $data   Data to add.
+ */
+function k_metadata_add($type, $id, array $data) {
+    _k_metadata($type, $id, $data);
+}
+
+/**
+ * Write metadata to a file.
+ * @param string $file
+ */
+function k_metadata_write($file) {
+    k_log_indent("Writing metadata file {$file}");
+    $file = k_absolute_path($file);
+    k_setup_dir(dirname($file));
+    
+    $file_data = array ();
+    $contents = null;
+    if (file_exists($file)) {
+        // read metadata from the file
+        $contents = file_get_contents($file);
+        if ($data = json_decode($contents, true)) {
+            $file_data = $data;
+        }
+    }
+    
+    // add the new data
+    foreach (_k_metadata() as $type => $type_data) {
+        $file_data[$type] = $type_data;
+    }
+    $new_contents = json_encode($file_data);
+    if ($new_contents != $contents) {
+        k_log("Updating metadata");
+        file_put_contents($file, $new_contents);
+    }
+}
+
 function _k_build(array $options) {
     $resources = _k_resources();
     $builds = array ();
@@ -172,6 +212,7 @@ function _k_build(array $options) {
             $watches[$absolute_path][] = $r;
         }
     }
+    _k_build_metadata();
     
     if ($options['watch'] && $watches) {
         // start the watch loop and run it until we die
@@ -185,6 +226,7 @@ function _k_build(array $options) {
                         }
                     }
                 }
+                _k_build_metadata();
             }
         }
     }
@@ -229,6 +271,7 @@ function _k_read_options(array &$args) {
         } else if (substr($arg, 0, 1) == '-') {
             $chars = str_split(substr($arg, 1));
             $options += array_combine($chars, array_fill(0, sizeof($chars), true));
+            unset ($args[$k]);
         }
     }
     return $options;
@@ -342,4 +385,28 @@ function _k_log_level($set = null) {
 
 function _k_usage() {
     fputs(STDOUT, file_get_contents(dirname(__FILE__) . '/usage.txt'));
+}
+
+function _k_build_metadata() {
+    if (is_callable('konstrukt_metadata')) {
+        konstrukt_metadata();
+    }
+}
+
+function _k_metadata($type = null, $id = null, array $data = null) {
+    static $metadata = array ();
+    if (is_array($type)) {
+        $metadata = $type;
+    } else if ($type && $id && $data !== null) {
+        if (!isset ($metadata[$type])) {
+            $metadata[$type] = array ();
+        }
+        if (!isset ($metadata[$type][$id])) {
+            $metadata[$type][$id] = $data;
+        } else {
+            $metadata[$type][$id] = array_merge($metadata[$type][$id], $data);
+        }
+    } else {
+        return $metadata;
+    }
 }
