@@ -17,7 +17,7 @@ function k_scss_compile($src, $dest) {
     // create stylesheet metadata and log messages
     foreach (glob("{$abs_dest}/*.css") as $file) {
         $file_name = basename($file);
-        if (filemtime($file) > $last_updated[$file]) {
+        if (!isset ($last_updated[$file]) || filemtime($file) > $last_updated[$file]) {
             k_log("Updated {$file_name}");
         }
         
