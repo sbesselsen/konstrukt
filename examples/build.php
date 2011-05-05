@@ -18,7 +18,8 @@ function konstrukt_css() {
 }
 
 function konstrukt_metadata() {
-    k_metadata_write('resources/metadata.json');
+    k_metadata_write_json('resources/metadata.json');
+    k_metadata_write_php('resources/metadata.inc.php');
 }
 
 konstrukt();
