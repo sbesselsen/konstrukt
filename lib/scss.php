@@ -1,5 +1,9 @@
 <?php
 function k_scss_compile($src, $dest) {
+    return _k_scss_compile($src, $dest, false);
+}
+
+function _k_scss_compile($src, $dest, $retrying) {
     k_log_indent("Compiling SCSS from $src to $dest");
     
     $src = k_absolute_path($src);
@@ -15,9 +19,17 @@ function k_scss_compile($src, $dest) {
     clearstatcache();
     
     // create stylesheet metadata and log messages
+    $retry_next = false;
     foreach (glob("{$abs_dest}/*.css") as $file) {
         $file_name = basename($file);
         if (!isset ($last_updated[$file]) || filemtime($file) > $last_updated[$file]) {
+            if (!$retrying && filesize($file) == 0) {
+                // try building this file again
+                k_log("Empty file: {$file_name}; trying again in 1 second");
+                unlink($file);
+                $retry_next = true;
+                continue;
+            }
             k_log("Updated {$file_name}");
         }
         
@@ -29,4 +41,9 @@ function k_scss_compile($src, $dest) {
     }
     
     k_log_unindent();
+    
+    if ($retry_next) {
+        sleep(1);
+        return _k_scss_compile($src, $dest, true);
+    }
 }
