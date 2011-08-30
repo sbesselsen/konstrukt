@@ -273,9 +273,11 @@ function _k_build_one($r, $f, $options) {
 function _k_init() {
     _k_resources('js', false);
     _k_resources('css', false);
+    _k_resources('dist', false);
     _k_extension_load('coffee');
     _k_extension_load('js');
     _k_extension_load('scss');
+    _k_extension_load('dist');
 }
 
 /**
